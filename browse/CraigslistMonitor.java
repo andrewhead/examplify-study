@@ -33,16 +33,15 @@ public class CraigslistMonitor {
 
     public static void main(String[] args) throws IOException, MessagingException, AddressException {
 
-        if (args.length < 2) {
-          args = new String[]{"electric bike", "openairandrew@gmail.com"};
-        }
+        String arg0 = "electric bike";
+        String arg1 = "openairandrew@gmail.com";
 
         List titles = new ArrayList();
         List prices = new ArrayList();
         List links = new ArrayList();
 
-        String query = URLEncoder.encode(args[0], "utf-8");
-        String destination = args[1];
+        String query = URLEncoder.encode(arg0, "utf-8");
+        String destination = arg1;
         URL url = new URL("https://sfbay.craigslist.org/search/bia?query=" + query);
         System.out.println("Fetching " + url.toExternalForm() + "...");
 
@@ -56,9 +55,9 @@ public class CraigslistMonitor {
 
             String price = row.select("span.result-meta span.result-price").text();
             int priceInt;
-            if (!price.equals("")) {
+            try {
                 priceInt = Integer.parseInt(price.replaceFirst("\\$", ""));
-            } else {
+            } catch (NumberFormatException exception) {
                 priceInt = -1;
             }
             prices.add(new Integer(priceInt));
@@ -69,41 +68,44 @@ public class CraigslistMonitor {
 
             String title = row.select("a.result-title.hdrlnk").text();
             titles.add(title);
+
+            if (titles.size() >= 5) break;
         }
 
         int maxTitleLength = 0;
         int maxPriceLength = 0;
         int maxLinkLength = 0;
         for (int i = 0; i < titles.size(); i++) {
-            String title = (String) titles.get(i);
-            if (title.length() > maxTitleLength) {
-                maxTitleLength = title.length();
+            String titleLine = (String) titles.get(i);
+            if (titleLine.length() > maxTitleLength) {
+                maxTitleLength = titleLine.length();
             }
-            int price = ((Integer) prices.get(i)).intValue();
-            if (Integer.toString(price).length() > maxPriceLength) {
-                maxPriceLength = Integer.toString(price).length();
+            int priceLine = ((Integer) prices.get(i)).intValue();
+            if (Integer.toString(priceLine).length() > maxPriceLength) {
+                maxPriceLength = Integer.toString(priceLine).length();
             }
-            String link = (String) links.get(i);
-            if (link.length() > maxLinkLength) {
-                maxLinkLength = link.length();
+            String linkLine = (String) links.get(i);
+            if (linkLine.length() > maxLinkLength) {
+                maxLinkLength = linkLine.length();
             }
         }
 
-        String messageHtml = "<pre>";
-        for (int i = 0; i < titles.size(); i++) {
-            String title = (String) titles.get(i);
-            String priceString = ((Integer) prices.get(i)).toString();
-            String link = (String) links.get(i);
-            String titlePadded = title + StringUtils.repeat(" ", maxTitleLength - title.length());
-            String pricePadded = priceString + StringUtils.repeat(" ", maxPriceLength - priceString.length());
-            String linkPadded = link + StringUtils.repeat(" ", maxLinkLength - link.length());
-            messageHtml += ("( $" + pricePadded + " ) " + titlePadded + "\n" + linkPadded + "\n\n");
+        String messageHtml = "<code>";
+        for (int j = 0; j < titles.size(); j++) {
+            String titleText = (String) titles.get(j);
+            String priceText = ((Integer) prices.get(j)).toString();
+            String linkText = (String) links.get(j);
+            String titlePadded = titleText + StringUtils.repeat(" ", maxTitleLength - titleText.length());
+            String pricePadded = priceText + StringUtils.repeat(" ", maxPriceLength - priceText.length());
+            String linkPadded = linkText + StringUtils.repeat(" ", maxLinkLength - linkText.length());
+            messageHtml += ("( $" + pricePadded + " ) " + titlePadded + "<br/>" + linkPadded + "<br/><br/>");
         }
-        messageHtml += "</pre>";
+        messageHtml += "</code>";
 
         BufferedReader confReader = new BufferedReader(new FileReader("/etc/smtp.conf"));
         String username = confReader.readLine();
         String password = confReader.readLine();
+        System.out.println("Logging in with " + username + ", " + password);
 
         Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
         String sslFactoryClass = "javax.net.ssl.SSLSocketFactory";

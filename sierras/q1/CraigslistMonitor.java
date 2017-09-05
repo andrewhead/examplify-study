@@ -33,16 +33,15 @@ public class CraigslistMonitor {
 
     public static void main(String[] args) throws IOException, MessagingException, AddressException {
 
-        if (args.length < 2) {
-          args = new String[]{"electric bike", "openairandrew@gmail.com"};
-        }
+        String arg0 = "electric bike";
+        String arg1 = "openairandrew@gmail.com";
 
         List titles = new ArrayList();
         List prices = new ArrayList();
         List links = new ArrayList();
 
-        String query = URLEncoder.encode(args[0], "utf-8");
-        String destination = args[1];
+        String query = URLEncoder.encode(arg0, "utf-8");
+        String destination = arg1;
         URL url = new URL("https://sfbay.craigslist.org/search/bia?query=" + query);
         System.out.println("Fetching " + url.toExternalForm() + "...");
 
@@ -55,9 +54,11 @@ public class CraigslistMonitor {
             Element row = (Element) rowsIterator.next();
 
             String price = row.select("span.result-meta span.result-price").text();
-            int priceInt = -1;
-            if (!price.equals("")) {
+            int priceInt;
+            try {
                 priceInt = Integer.parseInt(price.replaceFirst("\\$", ""));
+            } catch (NumberFormatException exception) {
+                priceInt = -1;
             }
             prices.add(new Integer(priceInt));
 
