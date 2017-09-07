@@ -13,9 +13,7 @@ public class ScrapeTextSlice {
   public static void main(String[] args) throws IOException {
 
     String arg0 = "electric bike";
-    String arg1 = "openairandrew@gmail.com";
     String query = URLEncoder.encode(arg0, "utf-8");
-    String destination = arg1;
     URL url = new URL("https://sfbay.craigslist.org/search/bia?query=" + query);
     Document doc = Jsoup.parse(url, 3*1000);
     Elements rows = doc.select("li.result-row");
